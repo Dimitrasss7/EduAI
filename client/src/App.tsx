@@ -23,20 +23,12 @@ function LoadingSpinner() {
 }
 
 function Router() {
-  const { isAuthenticated, isLoading, user } = useAuth();
-
-  if (isLoading) {
-    return <LoadingSpinner />;
-  }
+  const { isAuthenticated, isLoading } = useAuth();
 
   return (
     <Switch>
-      {!isAuthenticated ? (
-        <>
-          <Route path="/" component={Landing} />
-          <Route path="/courses" component={Courses} />
-          <Route path="/courses/:id" component={CourseDetail} />
-        </>
+      {isLoading || !isAuthenticated ? (
+        <Route path="/" component={Landing} />
       ) : (
         <>
           <Route path="/" component={Dashboard} />
@@ -44,9 +36,7 @@ function Router() {
           <Route path="/courses/:id" component={CourseDetail} />
           <Route path="/lessons/:id" component={Lesson} />
           <Route path="/profile" component={Profile} />
-          {user?.role === "admin" && (
-            <Route path="/admin" component={Admin} />
-          )}
+          <Route path="/admin" component={Admin} />
         </>
       )}
       <Route component={NotFound} />

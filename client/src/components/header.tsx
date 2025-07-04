@@ -25,7 +25,7 @@ import {
 
 export default function Header() {
   const [location, setLocation] = useLocation();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navigationItems = [
@@ -43,8 +43,7 @@ export default function Header() {
   ] : navigationItems;
 
   const handleLogout = () => {
-    logout();
-    setLocation("/");
+    window.location.href = "/api/logout";
   };
 
   const getInitials = () => {
@@ -138,10 +137,10 @@ export default function Header() {
               </DropdownMenu>
             ) : (
               <>
-                <Button variant="ghost" onClick={() => setLocation("/auth/login")}>
+                <Button variant="ghost" onClick={() => window.location.href = "/api/login"}>
                   Войти
                 </Button>
-                <Button className="gradient-primary" onClick={() => setLocation("/auth/register")}>
+                <Button className="gradient-primary" onClick={() => window.location.href = "/api/login"}>
                   Начать обучение
                 </Button>
               </>

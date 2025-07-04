@@ -1,17 +1,29 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb, decimal, varchar, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, decimal, varchar, uuid, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Users table
+// Session storage table.
+// (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+// User storage table.
+// (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
 export const users = pgTable("users", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  email: varchar("email", { length: 255 }).notNull().unique(),
-  password: text("password").notNull(),
-  firstName: varchar("first_name", { length: 100 }),
-  lastName: varchar("last_name", { length: 100 }),
+  id: varchar("id").primaryKey().notNull(),
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
   role: varchar("role", { length: 20 }).notNull().default("student"), // student, teacher, admin
-  profileImageUrl: text("profile_image_url"),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -19,7 +31,7 @@ export const users = pgTable("users", {
 
 // Courses table
 export const courses = pgTable("courses", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: varchar("id").primaryKey().notNull(),
   title: varchar("title", { length: 255 }).notNull(),
   description: text("description"),
   subject: varchar("subject", { length: 100 }).notNull(),
@@ -27,7 +39,7 @@ export const courses = pgTable("courses", {
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   thumbnailUrl: text("thumbnail_url"),
   duration: integer("duration"), // in hours
-  teacherId: uuid("teacher_id").references(() => users.id),
+  teacherId: varchar("teacher_id").references(() => users.id),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -35,8 +47,8 @@ export const courses = pgTable("courses", {
 
 // Lessons table
 export const lessons = pgTable("lessons", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  courseId: uuid("course_id").references(() => courses.id),
+  id: varchar("id").primaryKey().notNull(),
+  courseId: varchar("course_id").references(() => courses.id),
   title: varchar("title", { length: 255 }).notNull(),
   description: text("description"),
   videoUrl: text("video_url"),
@@ -49,9 +61,9 @@ export const lessons = pgTable("lessons", {
 
 // Enrollments table
 export const enrollments = pgTable("enrollments", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id").references(() => users.id),
-  courseId: uuid("course_id").references(() => courses.id),
+  id: varchar("id").primaryKey().notNull(),
+  userId: varchar("user_id").references(() => users.id),
+  courseId: varchar("course_id").references(() => courses.id),
   enrolledAt: timestamp("enrolled_at").defaultNow(),
   completedAt: timestamp("completed_at"),
   progress: integer("progress").notNull().default(0), // percentage
@@ -59,9 +71,9 @@ export const enrollments = pgTable("enrollments", {
 
 // Lesson Progress table
 export const lessonProgress = pgTable("lesson_progress", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id").references(() => users.id),
-  lessonId: uuid("lesson_id").references(() => lessons.id),
+  id: varchar("id").primaryKey().notNull(),
+  userId: varchar("user_id").references(() => users.id),
+  lessonId: varchar("lesson_id").references(() => lessons.id),
   isCompleted: boolean("is_completed").notNull().default(false),
   watchTime: integer("watch_time").default(0), // in seconds
   completedAt: timestamp("completed_at"),
@@ -69,8 +81,8 @@ export const lessonProgress = pgTable("lesson_progress", {
 
 // Quizzes table
 export const quizzes = pgTable("quizzes", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  lessonId: uuid("lesson_id").references(() => lessons.id),
+  id: varchar("id").primaryKey().notNull(),
+  lessonId: varchar("lesson_id").references(() => lessons.id),
   title: varchar("title", { length: 255 }).notNull(),
   questions: jsonb("questions").notNull(), // JSON array of questions
   timeLimit: integer("time_limit"), // in minutes
@@ -81,9 +93,9 @@ export const quizzes = pgTable("quizzes", {
 
 // Quiz Attempts table
 export const quizAttempts = pgTable("quiz_attempts", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id").references(() => users.id),
-  quizId: uuid("quiz_id").references(() => quizzes.id),
+  id: varchar("id").primaryKey().notNull(),
+  userId: varchar("user_id").references(() => users.id),
+  quizId: varchar("quiz_id").references(() => quizzes.id),
   answers: jsonb("answers").notNull(), // JSON object of answers
   score: integer("score").notNull(),
   isPassed: boolean("is_passed").notNull().default(false),
@@ -93,8 +105,8 @@ export const quizAttempts = pgTable("quiz_attempts", {
 
 // AI Chat Sessions table
 export const aiChatSessions = pgTable("ai_chat_sessions", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id").references(() => users.id),
+  id: varchar("id").primaryKey().notNull(),
+  userId: varchar("user_id").references(() => users.id),
   messages: jsonb("messages").notNull(), // JSON array of messages
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -102,7 +114,7 @@ export const aiChatSessions = pgTable("ai_chat_sessions", {
 
 // Lead Generation table
 export const leads = pgTable("leads", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: varchar("id").primaryKey().notNull(),
   name: varchar("name", { length: 100 }).notNull(),
   email: varchar("email", { length: 255 }),
   phone: varchar("phone", { length: 20 }),
@@ -204,6 +216,7 @@ export const insertAiChatSessionSchema = createInsertSchema(aiChatSessions).omit
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type UpsertUser = typeof users.$inferInsert;
 export type Course = typeof courses.$inferSelect;
 export type InsertCourse = z.infer<typeof insertCourseSchema>;
 export type Lesson = typeof lessons.$inferSelect;
