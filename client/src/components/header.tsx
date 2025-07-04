@@ -222,27 +222,15 @@ export default function Header() {
                         Выйти
                       </Button>
                     ) : (
-                      <div className="space-y-2">
-                        <Button 
-                          variant="outline" 
-                          className="w-full"
-                          onClick={() => {
-                            setLocation("/auth/login");
-                            setIsMobileMenuOpen(false);
-                          }}
-                        >
-                          Войти
-                        </Button>
-                        <Button 
-                          className="w-full gradient-primary"
-                          onClick={() => {
-                            setLocation("/auth/register");
-                            setIsMobileMenuOpen(false);
-                          }}
-                        >
-                          Начать обучение
-                        </Button>
-                      </div>
+                      <Button 
+                        className="w-full gradient-primary"
+                        onClick={() => {
+                          setLocation("/auth/register");
+                          setIsMobileMenuOpen(false);
+                        }}
+                      >
+                        Начать обучение
+                      </Button>
                     )}
                   </div>
                 </div>
