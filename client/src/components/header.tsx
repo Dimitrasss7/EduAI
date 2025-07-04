@@ -137,9 +137,6 @@ export default function Header() {
               </DropdownMenu>
             ) : (
               <>
-                <Button variant="ghost" onClick={() => window.location.href = "/api/login"}>
-                  Войти
-                </Button>
                 <Button className="gradient-primary" onClick={() => window.location.href = "/api/login"}>
                   Начать обучение
                 </Button>

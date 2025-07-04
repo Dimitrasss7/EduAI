@@ -106,18 +106,18 @@ export default function Teachers() {
             <Card key={index} className="glass-card overflow-hidden">
               <CardContent className="p-0">
                 <div className="grid md:grid-cols-2 gap-0">
-                  {/* Teacher Image */}
+                  {/* Teacher Image Column */}
                   <div className="relative h-80 md:h-auto">
                     <div className="absolute inset-0 gradient-primary opacity-20"></div>
                     <div className="absolute inset-0 flex items-center justify-center">
                       <Avatar className="w-48 h-48">
-                        <AvatarImage src={teacher.avatar} alt={teacher.name} />
+                        <AvatarImage src="https://emojio.ru/images/apple-b/1f468-1f3fc-200d-1f3eb.png" alt={teacher.name} />
                         <AvatarFallback className="text-4xl gradient-primary text-white">
                           {teacher.name.split(' ').map(n => n[0]).join('')}
                         </AvatarFallback>
                       </Avatar>
                     </div>
-                    
+
                     {/* Floating Stats */}
                     <div className="absolute top-4 left-4 bg-white/10 backdrop-blur-sm rounded-lg p-3">
                       <div className="text-white text-sm">
@@ -128,7 +128,7 @@ export default function Teachers() {
                         <div className="text-xs opacity-80">рейтинг</div>
                       </div>
                     </div>
-                    
+
                     <div className="absolute bottom-4 right-4 bg-white/10 backdrop-blur-sm rounded-lg p-3">
                       <div className="text-white text-sm">
                         <div className="font-semibold">{teacher.stats.students}</div>
@@ -137,7 +137,7 @@ export default function Teachers() {
                     </div>
                   </div>
 
-                  {/* Teacher Info */}
+                  {/* Teacher Info Column */}
                   <div className="p-8">
                     <div className="mb-4">
                       <Badge variant="secondary" className="bg-primary/20 text-primary mb-2">
