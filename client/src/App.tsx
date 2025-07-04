@@ -11,6 +11,8 @@ import CourseDetail from "@/pages/course-detail";
 import Lesson from "@/pages/lesson";
 import Profile from "@/pages/profile";
 import Admin from "@/pages/admin";
+import Login from "@/pages/login";
+import Register from "@/pages/register";
 import NotFound from "@/pages/not-found";
 import { Suspense } from "react";
 
@@ -27,6 +29,10 @@ function Router() {
 
   return (
     <Switch>
+      {/* Public routes */}
+      <Route path="/login" component={Login} />
+      <Route path="/register" component={Register} />
+      
       {isLoading || !isAuthenticated ? (
         <Route path="/" component={Landing} />
       ) : (

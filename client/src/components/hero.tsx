@@ -65,11 +65,11 @@ export default function Hero() {
           </div>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
             <Button 
               size="lg" 
               className="gradient-primary text-lg px-8 py-4 h-auto"
-              onClick={() => setLocation("/courses")}
+              onClick={() => setLocation("/register")}
             >
               Начать обучение бесплатно
             </Button>
@@ -82,6 +82,26 @@ export default function Hero() {
               <Play className="h-5 w-5 mr-2" />
               Смотреть демо
             </Button>
+          </div>
+
+          {/* Auth Options */}
+          <div className="text-center mb-16">
+            <p className="text-muted-foreground mb-4">
+              Уже есть аккаунт?{" "}
+              <button 
+                onClick={() => setLocation("/login")}
+                className="text-primary hover:underline"
+              >
+                Войти
+              </button>
+              {" "}или{" "}
+              <button 
+                onClick={() => window.location.href = "/api/login"}
+                className="text-primary hover:underline"
+              >
+                войти через Replit
+              </button>
+            </p>
           </div>
 
           {/* Stats Grid */}

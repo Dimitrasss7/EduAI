@@ -112,8 +112,12 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(insertUser).returning();
+  async createUser(insertUser: InsertUser & { id?: string }): Promise<User> {
+    const userData = {
+      ...insertUser,
+      id: insertUser.id || crypto.randomUUID()
+    };
+    const [user] = await db.insert(users).values(userData).returning();
     return user;
   }
 
@@ -141,7 +145,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createCourse(insertCourse: InsertCourse): Promise<Course> {
-    const [course] = await db.insert(courses).values(insertCourse).returning();
+    const courseData = { ...insertCourse, id: crypto.randomUUID() };
+    const [course] = await db.insert(courses).values(courseData).returning();
     return course;
   }
 
@@ -173,7 +178,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createLesson(insertLesson: InsertLesson): Promise<Lesson> {
-    const [lesson] = await db.insert(lessons).values(insertLesson).returning();
+    const lessonData = { ...insertLesson, id: crypto.randomUUID() };
+    const [lesson] = await db.insert(lessons).values(lessonData).returning();
     return lesson;
   }
 
@@ -204,7 +210,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createEnrollment(insertEnrollment: InsertEnrollment): Promise<Enrollment> {
-    const [enrollment] = await db.insert(enrollments).values(insertEnrollment).returning();
+    const enrollmentData = { ...insertEnrollment, id: crypto.randomUUID() };
+    const [enrollment] = await db.insert(enrollments).values(enrollmentData).returning();
     return enrollment;
   }
 
@@ -296,7 +303,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createAiChatSession(insertSession: InsertAiChatSession): Promise<AiChatSession> {
-    const [session] = await db.insert(aiChatSessions).values(insertSession).returning();
+    const sessionData = { ...insertSession, id: crypto.randomUUID() };
+    const [session] = await db.insert(aiChatSessions).values(sessionData).returning();
     return session;
   }
 

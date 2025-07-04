@@ -4,6 +4,8 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { generateEducationalResponse, generateQuizQuestions, analyzeStudentProgress } from "./services/gemini";
 import { insertUserSchema, insertCourseSchema, insertLessonSchema, insertEnrollmentSchema, insertLeadSchema, insertQuizSchema, insertQuizAttemptSchema } from "@shared/schema";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 // Middleware to check if user is admin
 const requireAdmin = (req: any, res: any, next: any) => {
@@ -16,11 +18,50 @@ const requireAdmin = (req: any, res: any, next: any) => {
 
 // Middleware to check if user is teacher or admin
 const requireTeacher = (req: any, res: any, next: any) => {
-  const userRole = req.user?.claims?.role;
+  const userRole = req.user?.claims?.role || req.user?.role;
   if (userRole !== 'teacher' && userRole !== 'admin') {
     return res.status(403).json({ message: 'Teacher access required' });
   }
   next();
+};
+
+// JWT middleware for email/password auth
+const jwtAuth = (req: any, res: any, next: any) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  
+  if (!token) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+  
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
+    req.user = decoded;
+    next();
+  } catch (error) {
+    return res.status(401).json({ message: 'Invalid token' });
+  }
+};
+
+// Combined auth middleware (supports both Replit and email/password)
+const authenticateUser = (req: any, res: any, next: any) => {
+  // Check JWT auth first
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
+      req.user = decoded;
+      return next();
+    } catch (error) {
+      console.error('JWT verification failed:', error);
+    }
+  }
+  
+  // Check Replit auth
+  if (req.isAuthenticated && req.isAuthenticated()) {
+    return next();
+  }
+  
+  return res.status(401).json({ message: 'Unauthorized' });
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -28,14 +69,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
   await setupAuth(app);
 
   // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  app.get('/api/auth/user', authenticateUser, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.claims?.sub || req.user.id;
       const user = await storage.getUser(userId);
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  // Email/Password registration
+  app.post('/api/auth/register', async (req, res) => {
+    try {
+      const { email, password, firstName, lastName } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ message: 'Email and password are required' });
+      }
+
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: 'User already exists' });
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
+      
+      // Create user with UUID
+      const userId = crypto.randomUUID();
+      const user = await storage.createUser({
+        id: userId,
+        email,
+        password: hashedPassword,
+        firstName,
+        lastName,
+        authProvider: 'email',
+        role: 'student'
+      });
+
+      // Generate JWT token
+      const token = jwt.sign(
+        { id: user.id, email: user.email, role: user.role },
+        process.env.JWT_SECRET || 'fallback-secret',
+        { expiresIn: '7d' }
+      );
+
+      res.status(201).json({
+        user: { ...user, password: undefined },
+        token
+      });
+    } catch (error) {
+      console.error('Registration error:', error);
+      res.status(500).json({ message: 'Registration failed' });
+    }
+  });
+
+  // Email/Password login
+  app.post('/api/auth/login', async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ message: 'Email and password are required' });
+      }
+
+      // Find user
+      const user = await storage.getUserByEmail(email);
+      if (!user || !user.password) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+
+      // Check password
+      const isValid = await bcrypt.compare(password, user.password);
+      if (!isValid) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+
+      // Generate JWT token
+      const token = jwt.sign(
+        { id: user.id, email: user.email, role: user.role },
+        process.env.JWT_SECRET || 'fallback-secret',
+        { expiresIn: '7d' }
+      );
+
+      res.json({
+        user: { ...user, password: undefined },
+        token
+      });
+    } catch (error) {
+      console.error('Login error:', error);
+      res.status(500).json({ message: 'Login failed' });
     }
   });
 
@@ -245,7 +371,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AI Chat routes
-  app.post('/api/ai/chat', isAuthenticated, async (req: any, res) => {
+  app.post('/api/ai/chat', authenticateUser, async (req: any, res) => {
     try {
       const { message, sessionId } = req.body;
       
@@ -255,17 +381,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Save or update chat session
       if (sessionId) {
         await storage.updateAiChatSession(sessionId, {
-          lastMessage: message,
-          lastResponse: aiResponse.response
+          messages: JSON.stringify([{ message, response: aiResponse.response }])
         });
       } else {
         const session = await storage.createAiChatSession({
-          userId: req.user.claims.sub,
-          lastMessage: message,
-          lastResponse: aiResponse.response,
-          subject: aiResponse.subject || 'general'
+          userId: req.user.claims?.sub || req.user.id,
+          messages: JSON.stringify([{ message, response: aiResponse.response }])
         });
-        aiResponse.sessionId = session.id;
+        (aiResponse as any).sessionId = session.id;
       }
       
       res.json(aiResponse);
