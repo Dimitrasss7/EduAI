@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
-import { getAuthHeaders } from "@/lib/auth";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { 
   MessageCircle, 
@@ -60,12 +60,8 @@ export default function AiChat() {
 
   const chatMutation = useMutation({
     mutationFn: async (userMessage: string): Promise<AiResponse> => {
-      const response = await fetch("/api/ai/chat", {
+      return await apiRequest("/api/ai/chat", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...getAuthHeaders(),
-        },
         body: JSON.stringify({
           message: userMessage,
           context: {
@@ -75,9 +71,6 @@ export default function AiChat() {
           }
         }),
       });
-      
-      if (!response.ok) throw new Error("Failed to get AI response");
-      return await response.json();
     },
     onSuccess: (data: AiResponse) => {
       setMessages(prev => [...prev, {
